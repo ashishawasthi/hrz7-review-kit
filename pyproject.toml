@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hrz7-review-kit"
+version = "0.1.0"
+description = "The shared client for routing a requires_human_review escalation to an Hrz7-compatible Human-Review & Maker-Checker Console: a small, domain-neutral review-submission primitive plus an in-memory outbox, so every producer submits reviews the same way (rule R8) instead of copy-pasting an HTTP call."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Ashish Awasthi" }]
+keywords = ["maker-checker", "human-review", "four-eyes", "s2s", "outbox", "hrz7"]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.12",
+]
+
+# Reuses the shared S2S transport hardening (headers + https-only url guard) from hex-service-kit
+# rather than re-implementing it (finding 1: extract, do not copy-paste). Pinned by tag, public.
+dependencies = [
+  "hex-service-kit @ git+https://github.com/ashishawasthi/hex-service-kit@v0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2",
+  "ruff==0.15.18",
+  "mypy>=1.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/ashishawasthi/hrz7-review-kit"
+Source = "https://github.com/ashishawasthi/hrz7-review-kit"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hrz7_review_kit"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
