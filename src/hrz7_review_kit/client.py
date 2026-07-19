@@ -8,13 +8,15 @@ stdlib ``urllib`` POST (no third-party HTTP dependency).
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
+import os
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Mapping
 from typing import Any
-
-from hex_service_kit.s2s import client_headers, validate_base_url
+from urllib.parse import urlparse
 
 from .models import Review, ReviewSubmitted
 
@@ -22,6 +24,41 @@ from .models import Review, ReviewSubmitted
 Transport = Callable[[str, bytes, Mapping[str, str], float], dict[str, Any]]
 
 _SERVICE_PATH = "/v1/service/reviews"
+_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+# The S2S actor headers, kept byte-for-byte compatible with hex-service-kit's server verifier
+# (``hex_service_kit.web.make_require_service_caller``) so Hrz7 accepts what this client sends.
+_ACTOR_HEADER = "X-S2S-Actor"
+_ACTOR_SIG_HEADER = "X-S2S-Actor-Sig"
+
+
+def _validate_base_url(url: str, *, service: str) -> str:
+    """Return ``url`` without a trailing slash; refuse plaintext outside loopback (https-only).
+
+    Self-contained (no hex-service-kit dependency) so this kit installs zero-dep and zero-cred like
+    ``pii-pack``, avoiding the nested git+https resolution conflict a commons-on-commons dep causes.
+    """
+    stripped = url.rstrip("/")
+    parsed = urlparse(stripped)
+    host = parsed.hostname or ""
+    if parsed.scheme == "https":
+        return stripped
+    if parsed.scheme == "http" and host in _LOOPBACK_HOSTS:
+        return stripped
+    raise ValueError(f"{service} base URL must be https outside loopback (got {url!r})")
+
+
+def _client_headers(actor: str, *, token_env: str, signing_key_env: str) -> dict[str, str]:
+    """Auth headers for one outbound S2S request: a bearer token, and an HMAC-signed actor."""
+    headers: dict[str, str] = {}
+    token = os.environ.get(token_env, "")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    key = os.environ.get(signing_key_env, "")
+    if actor and key:
+        signature = hmac.new(key.encode("utf-8"), actor.encode("utf-8"), hashlib.sha256).hexdigest()
+        headers[_ACTOR_HEADER] = actor
+        headers[_ACTOR_SIG_HEADER] = signature
+    return headers
 
 
 class ReviewClientError(RuntimeError):
@@ -56,7 +93,7 @@ class ReviewClient:
         transport: Transport | None = None,
     ) -> None:
         # https-only outside loopback; a plaintext non-loopback URL is refused at construction.
-        self._base = validate_base_url(base_url, service=service)
+        self._base = _validate_base_url(base_url, service=service)
         self._token_env = token_env
         self._signing_key_env = signing_key_env
         self._timeout = timeout
@@ -66,7 +103,7 @@ class ReviewClient:
         """Submit one review. ``actor`` is the submitting service's identity for the S2S header."""
         headers = {
             "Content-Type": "application/json",
-            **client_headers(
+            **_client_headers(
                 actor, token_env=self._token_env, signing_key_env=self._signing_key_env
             ),
         }

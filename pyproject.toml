@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hrz7-review-kit"
-version = "0.1.0"
+version = "0.1.1"
 description = "The shared client for routing a requires_human_review escalation to an Hrz7-compatible Human-Review & Maker-Checker Console: a small, domain-neutral review-submission primitive plus an in-memory outbox, so every producer submits reviews the same way (rule R8) instead of copy-pasting an HTTP call."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -16,11 +16,12 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 
-# Reuses the shared S2S transport hardening (headers + https-only url guard) from hex-service-kit
-# rather than re-implementing it (finding 1: extract, do not copy-paste). Pinned by tag, public.
-dependencies = [
-  "hex-service-kit @ git+https://github.com/ashishawasthi/hex-service-kit@v0.1.0",
-]
+# ZERO runtime dependencies (pure stdlib), exactly like pii-pack. A leaf commons that consumers
+# pin cannot itself pull another git+https commons: the nested tag-vs-SHA direct-URL reference
+# conflicts at install time with the consumer's own lockfile pin of that commons. The small S2S
+# client helpers (bearer + HMAC-signed actor headers, https-only url guard) are therefore inlined
+# and kept byte-for-byte wire-compatible with hex-service-kit's server verifier.
+dependencies = []
 
 [project.optional-dependencies]
 dev = [

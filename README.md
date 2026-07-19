@@ -5,9 +5,12 @@ The shared **producer half of dependency rule R8**: a small, domain-neutral clie
 plus a transactional outbox. Every producer submits reviews the same way through this primitive
 instead of copy-pasting an HTTP call into each repo (finding 1: extract, do not copy-paste).
 
-Zero third-party HTTP dependency (a stdlib `urllib` POST), reusing `hex-service-kit` for the S2S
-transport hardening (the https-only base-URL guard and the bearer / signed-actor headers). The
-transport is pluggable, so the client is unit-testable with no live server.
+Zero runtime dependencies (pure stdlib), exactly like `pii-pack`: a leaf commons that consumers
+pin cannot itself pull another git+https commons without the nested tag-vs-SHA reference
+conflicting with the consumer's own lockfile, so the small S2S client helpers (a stdlib `urllib`
+POST, the https-only base-URL guard, and the bearer / HMAC-signed-actor headers) are inlined and
+kept wire-compatible with `hex-service-kit`'s server verifier. The transport is pluggable, so the
+client is unit-testable with no live server.
 
 ## Use
 
@@ -44,7 +47,7 @@ submitting service is the trust anchor on this path.
 ## Pin
 
 ```
-hrz7-review-kit @ git+https://github.com/ashishawasthi/hrz7-review-kit@v0.1.0
+hrz7-review-kit @ git+https://github.com/ashishawasthi/hrz7-review-kit@v0.1.1
 ```
 
 Public, so consumers pin by tag with zero credentials, exactly like `pii-pack`, `hex-service-kit`
