@@ -25,6 +25,7 @@ def _review(action: str = "disburse_facility") -> Review:
         severity="high",
         required_approvals=2,
         case_ref="case-123",
+        source_key="doc1:demo-bank:case-123:cdd_dossier",
     )
 
 
@@ -51,6 +52,7 @@ def test_submit_posts_the_payload_and_parses_the_result() -> None:
     assert seen["payload"]["maker"] == "demo.analyst@bank.example"
     assert seen["payload"]["tenant"] == "demo-bank"
     assert seen["payload"]["required_approvals"] == 2
+    assert seen["payload"]["source_key"] == "doc1:demo-bank:case-123:cdd_dossier"
 
 
 def test_plaintext_non_loopback_url_is_refused() -> None:

@@ -31,6 +31,9 @@ class Review:
     required_approvals: int = 1
     sod_group: str = ""
     case_ref: str = ""
+    # A producer-owned, tenant-scoped key used by Hrz7 to make retried delivery idempotent.
+    # Optional for wire compatibility with existing producers; new durable outboxes should set it.
+    source_key: str = ""
     citations: tuple[Citation, ...] = field(default_factory=tuple)
 
     def to_payload(self) -> dict[str, object]:
@@ -44,6 +47,7 @@ class Review:
             "required_approvals": self.required_approvals,
             "sod_group": self.sod_group,
             "case_ref": self.case_ref,
+            "source_key": self.source_key,
             "citations": [
                 {"source_id": c.source_id, "title": c.title, "snippet": c.snippet}
                 for c in self.citations
